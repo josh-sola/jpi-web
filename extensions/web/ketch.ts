@@ -29,7 +29,11 @@ export type KetchExecOptions = {
   timeout?: number;
 };
 
-export type KetchExec = (command: string, args: string[], options: KetchExecOptions) => Promise<KetchExecResult>;
+export type KetchExec = (
+  command: string,
+  args: string[],
+  options: KetchExecOptions,
+) => Promise<KetchExecResult>;
 export type KetchAccess = (path: string) => Promise<void>;
 export type KetchResolver = (signal?: AbortSignal) => Promise<string>;
 
@@ -69,7 +73,7 @@ async function defaultAccess(path: string): Promise<void> {
 }
 
 function isExecutableNotFound(error: unknown): boolean {
-  return Boolean(error) && typeof error === "object" && "code" in error && (error as { code?: unknown }).code === "ENOENT";
+  return typeof error === "object" && error !== null && "code" in error && error.code === "ENOENT";
 }
 
 async function pathExists(path: string, access: KetchAccess): Promise<boolean> {
@@ -81,7 +85,10 @@ async function pathExists(path: string, access: KetchAccess): Promise<boolean> {
   }
 }
 
-export function mapKetchPlatform(platform: NodeJS.Platform = process.platform, arch: string = process.arch): KetchPlatform | undefined {
+export function mapKetchPlatform(
+  platform: NodeJS.Platform = process.platform,
+  arch: string = process.arch,
+): KetchPlatform | undefined {
   if (platform !== "darwin" && platform !== "linux" && platform !== "win32") return undefined;
   if (arch !== "arm64" && arch !== "x64") return undefined;
 
@@ -112,12 +119,16 @@ function getPathExecutableNames(platform: NodeJS.Platform, env: NodeJS.ProcessEn
     .split(";")
     .map((item) => item.trim().toLowerCase())
     .filter(Boolean);
-  const names = extensions.map((extension) => `ketch${extension.startsWith(".") ? extension : `.${extension}`}`);
+  const names = extensions.map(
+    (extension) => `ketch${extension.startsWith(".") ? extension : `.${extension}`}`,
+  );
   names.push("ketch");
   return [...new Set(names)];
 }
 
-export async function findKetchOnPath(options: ResolveKetchOptions = {}): Promise<string | undefined> {
+export async function findKetchOnPath(
+  options: ResolveKetchOptions = {},
+): Promise<string | undefined> {
   const access = options.access ?? defaultAccess;
   const env = options.env ?? process.env;
   const platform = options.platform ?? process.platform;
@@ -137,12 +148,15 @@ export async function findKetchOnPath(options: ResolveKetchOptions = {}): Promis
   return undefined;
 }
 
-export async function resolveKetchExecutable(options: ResolveKetchOptions = {}, signal?: AbortSignal): Promise<string> {
+export async function resolveKetchExecutable(
+  options: ResolveKetchOptions = {},
+  signal?: AbortSignal,
+): Promise<string> {
   throwIfAborted(signal);
 
   const access = options.access ?? defaultAccess;
   const packagePath = getPackageKetchPath(options);
-  if (packagePath && await pathExists(packagePath, access)) return packagePath;
+  if (packagePath && (await pathExists(packagePath, access))) return packagePath;
 
   const pathExecutable = await findKetchOnPath(options);
   if (pathExecutable) return pathExecutable;
@@ -188,7 +202,9 @@ function exitCodeError(code: number | null | undefined, result: KetchExecResult)
   const diagnostics = formatDiagnostics(result.stderr);
 
   if (code === 2) {
-    return new Error(`Ketch rejected the request or this extension called ketch with invalid arguments.${diagnostics}`);
+    return new Error(
+      `Ketch rejected the request or this extension called ketch with invalid arguments.${diagnostics}`,
+    );
   }
   if (code === 3) {
     return new Error(`Ketch could not find the page or requested content.${diagnostics}`);
@@ -197,7 +213,9 @@ function exitCodeError(code: number | null | undefined, result: KetchExecResult)
     return new Error(`Ketch is temporarily unavailable. Try again later.${diagnostics}`);
   }
   if (code === 5) {
-    return new Error(`Ketch needs an optional capability that is not configured. Configure that capability or use a simpler page.${diagnostics}`);
+    return new Error(
+      `Ketch needs an optional capability that is not configured. Configure that capability or use a simpler page.${diagnostics}`,
+    );
   }
   if (code === 6) {
     return new Error("Ketch cancelled the request.");
@@ -209,7 +227,8 @@ function exitCodeError(code: number | null | undefined, result: KetchExecResult)
 }
 
 export function createKetchRunner(options: CreateKetchRunnerOptions): KetchRunner {
-  const resolver = options.resolver ?? ((signal?: AbortSignal) => resolveKetchExecutable(options, signal));
+  const resolver =
+    options.resolver ?? ((signal?: AbortSignal) => resolveKetchExecutable(options, signal));
 
   return {
     async runJson(args: string[], runOptions: KetchRunOptions): Promise<unknown> {
@@ -237,7 +256,9 @@ export function createKetchRunner(options: CreateKetchRunnerOptions): KetchRunne
         throwIfAborted(runOptions.signal);
 
         if (result.killed) {
-          throw new Error("Ketch was terminated or timed out before it finished. Try again or use a narrower request.");
+          throw new Error(
+            "Ketch was terminated or timed out before it finished. Try again or use a narrower request.",
+          );
         }
 
         const code = result.code;

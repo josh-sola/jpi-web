@@ -53,26 +53,37 @@ export function validateReleaseManifest(manifest) {
   }
   for (const [platform, arch] of EXPECTED_ARTIFACTS) {
     const key = artifactKey(platform, arch);
-    if (!seen.has(key)) throw new Error(`The ketch release manifest is missing the ${key} artifact.`);
+    if (!seen.has(key))
+      throw new Error(`The ketch release manifest is missing the ${key} artifact.`);
   }
 }
 
-export function selectKetchArtifact(manifest, { platform = process.platform, arch = process.arch } = {}) {
+export function selectKetchArtifact(
+  manifest,
+  { platform = process.platform, arch = process.arch } = {},
+) {
   validateReleaseManifest(manifest);
   const releaseArch = normalizeNodeArch(arch);
   if (!releaseArch) {
-    throw new Error(`Ketch ${manifest.version} does not provide an installer artifact for ${platform}/${arch}.`);
+    throw new Error(
+      `Ketch ${manifest.version} does not provide an installer artifact for ${platform}/${arch}.`,
+    );
   }
-  const artifact = manifest.artifacts.find((candidate) => candidate.platform === platform && candidate.arch === releaseArch);
+  const artifact = manifest.artifacts.find(
+    (candidate) => candidate.platform === platform && candidate.arch === releaseArch,
+  );
   if (!artifact) {
-    throw new Error(`Ketch ${manifest.version} does not provide an installer artifact for ${platform}/${releaseArch}.`);
+    throw new Error(
+      `Ketch ${manifest.version} does not provide an installer artifact for ${platform}/${releaseArch}.`,
+    );
   }
   return { ...artifact, url: buildArtifactUrl(manifest, artifact) };
 }
 
 export function buildArtifactUrl(manifest, artifact) {
   validateArtifact(artifact);
-  if (typeof manifest?.baseUrl !== "string") throw new Error("The ketch release manifest must include a base URL.");
+  if (typeof manifest?.baseUrl !== "string")
+    throw new Error("The ketch release manifest must include a base URL.");
   if (artifact.fileName.includes("/") || artifact.fileName.includes("\\")) {
     throw new Error("The ketch artifact filename must not contain path separators.");
   }
@@ -83,7 +94,15 @@ export function getKetchInstallTarget({ packageRoot, version, artifact }) {
   if (typeof packageRoot !== "string" || packageRoot.trim() === "") {
     throw new Error("A package root is required to install ketch.");
   }
-  const installDir = join(packageRoot, "node_modules", ".cache", "jpi", "ketch", version, `${artifact.platform}-${artifact.arch}`);
+  const installDir = join(
+    packageRoot,
+    "node_modules",
+    ".cache",
+    "jpi",
+    "ketch",
+    version,
+    `${artifact.platform}-${artifact.arch}`,
+  );
   return { installDir, executablePath: join(installDir, artifact.executableName) };
 }
 
@@ -122,9 +141,13 @@ export async function installKetch({
     await ops.writeFile(archivePath, archiveData);
     const actualSha256 = sha256Hex(await ops.readFile(archivePath));
     if (actualSha256 !== artifact.sha256) {
-      throw new Error(`Checksum mismatch for ${artifact.fileName}. Expected ${artifact.sha256}, got ${actualSha256}.`);
+      throw new Error(
+        `Checksum mismatch for ${artifact.fileName}. Expected ${artifact.sha256}, got ${actualSha256}.`,
+      );
     }
-    await runRequired(ops, "tar", getTarArgs(archivePath, artifact.archiveType, extractDir), { cwd: tempDir });
+    await runRequired(ops, "tar", getTarArgs(archivePath, artifact.archiveType, extractDir), {
+      cwd: tempDir,
+    });
     const extractedExecutablePath = await findExecutable(ops, extractDir, artifact.executableName);
     if (artifact.platform !== "win32") await ops.chmod(extractedExecutablePath, 0o755);
     await assertExecutableVersion(extractedExecutablePath, manifest.version, ops);
@@ -151,15 +174,32 @@ export async function installKetch({
     );
   }
   if (installError) throw installError;
-  if (cleanupError) throw new Error(`Ketch installed, but temporary-file cleanup failed: ${errorMessage(cleanupError)}`, { cause: cleanupError });
+  if (cleanupError)
+    throw new Error(
+      `Ketch installed, but temporary-file cleanup failed: ${errorMessage(cleanupError)}`,
+      { cause: cleanupError },
+    );
   return result;
 }
 
 export function createNodeInstallOperations() {
-  return { chmod, mkdir, mkdtemp, readdir, readFile, rename, rm, writeFile, download: downloadUrl, runCommand: runCommandWithSpawn };
+  return {
+    chmod,
+    mkdir,
+    mkdtemp,
+    readdir,
+    readFile,
+    rename,
+    rm,
+    writeFile,
+    download: downloadUrl,
+    runCommand: runCommandWithSpawn,
+  };
 }
 
-export async function loadReleaseManifest(manifestUrl = new URL("../ketch-release.json", import.meta.url)) {
+export async function loadReleaseManifest(
+  manifestUrl = new URL("../ketch-release.json", import.meta.url),
+) {
   return JSON.parse(await readFile(manifestUrl, "utf8"));
 }
 
@@ -172,7 +212,9 @@ export async function runCli({
 } = {}) {
   const manifest = await loadReleaseManifest(manifestUrl);
   const result = await installKetch({ manifest, packageRoot, platform, arch });
-  stdout.write(`Ketch ${manifest.version} ${result.status === "reused" ? "is already installed" : "installed"} at ${result.executablePath}.\n`);
+  stdout.write(
+    `Ketch ${manifest.version} ${result.status === "reused" ? "is already installed" : "installed"} at ${result.executablePath}.\n`,
+  );
   return result;
 }
 
@@ -185,32 +227,46 @@ function validateArtifact(artifact, version) {
       throw new Error(`Each ketch artifact must include ${field}.`);
     }
   }
-  if (!EXPECTED_ARTIFACTS.some(([platform, arch]) => artifact.platform === platform && artifact.arch === arch)) {
-    throw new Error(`Unsupported ketch artifact platform or architecture: ${artifact.platform}/${artifact.arch}.`);
+  if (
+    !EXPECTED_ARTIFACTS.some(
+      ([platform, arch]) => artifact.platform === platform && artifact.arch === arch,
+    )
+  ) {
+    throw new Error(
+      `Unsupported ketch artifact platform or architecture: ${artifact.platform}/${artifact.arch}.`,
+    );
   }
   if (artifact.archiveType !== "tar.gz" && artifact.archiveType !== "zip") {
     throw new Error(`Unsupported ketch archive type: ${artifact.archiveType}.`);
   }
   const expectedArchiveType = artifact.platform === "win32" ? "zip" : "tar.gz";
   if (artifact.archiveType !== expectedArchiveType) {
-    throw new Error(`The ${artifact.platform}/${artifact.arch} ketch artifact must use ${expectedArchiveType}.`);
+    throw new Error(
+      `The ${artifact.platform}/${artifact.arch} ketch artifact must use ${expectedArchiveType}.`,
+    );
   }
   if (!/^[a-f0-9]{64}$/.test(artifact.sha256)) {
-    throw new Error(`The ${artifact.platform}/${artifact.arch} ketch artifact must include a SHA-256 checksum.`);
+    throw new Error(
+      `The ${artifact.platform}/${artifact.arch} ketch artifact must include a SHA-256 checksum.`,
+    );
   }
   if (artifact.fileName.includes("/") || artifact.fileName.includes("\\")) {
     throw new Error("The ketch artifact filename must not contain path separators.");
   }
   const expectedExecutable = artifact.platform === "win32" ? "ketch.exe" : "ketch";
   if (artifact.executableName !== expectedExecutable) {
-    throw new Error(`The ${artifact.platform}/${artifact.arch} ketch artifact must contain ${expectedExecutable}.`);
+    throw new Error(
+      `The ${artifact.platform}/${artifact.arch} ketch artifact must contain ${expectedExecutable}.`,
+    );
   }
   if (version) {
     const releasePlatform = artifact.platform === "win32" ? "windows" : artifact.platform;
     const extension = artifact.archiveType === "zip" ? "zip" : "tar.gz";
     const expectedFileName = `ketch_${version}_${releasePlatform}_${artifact.arch}.${extension}`;
     if (artifact.fileName !== expectedFileName) {
-      throw new Error(`The ${artifact.platform}/${artifact.arch} ketch artifact must use the pinned filename ${expectedFileName}.`);
+      throw new Error(
+        `The ${artifact.platform}/${artifact.arch} ketch artifact must use the pinned filename ${expectedFileName}.`,
+      );
     }
   }
 }
@@ -229,13 +285,19 @@ async function executableReportsVersion(executablePath, version, ops) {
 }
 
 async function assertExecutableVersion(executablePath, version, ops) {
-  const result = await ops.runCommand(executablePath, ["version"], { timeoutMs: KETCH_VERSION_TIMEOUT_MS });
+  const result = await ops.runCommand(executablePath, ["version"], {
+    timeoutMs: KETCH_VERSION_TIMEOUT_MS,
+  });
   if (result.exitCode !== 0 || result.signal || result.error || result.timedOut) {
-    throw new Error(`Could not verify ${basename(executablePath)} version. ${formatCommandResult(result)}`);
+    throw new Error(
+      `Could not verify ${basename(executablePath)} version. ${formatCommandResult(result)}`,
+    );
   }
   const text = `${result.stdout ?? ""}\n${result.stderr ?? ""}`;
   if (!new RegExp(`(^|\\D)${escapeRegExp(version)}($|\\D)`).test(text)) {
-    throw new Error(`The ketch binary at ${executablePath} reports the wrong version. Expected ${version}.`);
+    throw new Error(
+      `The ketch binary at ${executablePath} reports the wrong version. Expected ${version}.`,
+    );
   }
 }
 
@@ -283,19 +345,30 @@ async function collectExecutableMatches(ops, dir, executableName, matches) {
   const entries = await ops.readdir(dir, { withFileTypes: true });
   for (const entry of entries) {
     const entryPath = join(dir, entry.name);
-    if (entry.isDirectory()) await collectExecutableMatches(ops, entryPath, executableName, matches);
+    if (entry.isDirectory())
+      await collectExecutableMatches(ops, entryPath, executableName, matches);
     else if (entry.isFile() && entry.name === executableName) matches.push(entryPath);
   }
 }
 
-export async function downloadUrl(url, {
-  maxRedirects = 5,
-  maxBytes = MAX_KETCH_ARCHIVE_BYTES,
-  timeoutMs = KETCH_DOWNLOAD_TIMEOUT_MS,
-  idleTimeoutMs = KETCH_DOWNLOAD_IDLE_TIMEOUT_MS,
-} = {}) {
-  const options = { redirectsLeft: maxRedirects, maxBytes, deadline: Date.now() + timeoutMs, idleTimeoutMs };
-  return await new Promise((resolvePromise, reject) => downloadUrlOnce(url, options, resolvePromise, reject));
+export async function downloadUrl(
+  url,
+  {
+    maxRedirects = 5,
+    maxBytes = MAX_KETCH_ARCHIVE_BYTES,
+    timeoutMs = KETCH_DOWNLOAD_TIMEOUT_MS,
+    idleTimeoutMs = KETCH_DOWNLOAD_IDLE_TIMEOUT_MS,
+  } = {},
+) {
+  const options = {
+    redirectsLeft: maxRedirects,
+    maxBytes,
+    deadline: Date.now() + timeoutMs,
+    idleTimeoutMs,
+  };
+  return await new Promise((resolvePromise, reject) =>
+    downloadUrlOnce(url, options, resolvePromise, reject),
+  );
 }
 
 function downloadUrlOnce(url, options, resolvePromise, reject) {
@@ -307,7 +380,11 @@ function downloadUrlOnce(url, options, resolvePromise, reject) {
     return;
   }
   if (parsed.protocol !== "https:" || parsed.username || parsed.password) {
-    reject(new Error("Download failed because every release URL and redirect must use HTTPS without credentials."));
+    reject(
+      new Error(
+        "Download failed because every release URL and redirect must use HTTPS without credentials.",
+      ),
+    );
     return;
   }
   const remainingMs = options.deadline - Date.now();
@@ -339,7 +416,12 @@ function downloadUrlOnce(url, options, resolvePromise, reject) {
   };
 
   request = httpsGet(parsed, { headers: { "user-agent": "jpi-ketch-installer" } }, (response) => {
-    if (response.statusCode && response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
+    if (
+      response.statusCode &&
+      response.statusCode >= 300 &&
+      response.statusCode < 400 &&
+      response.headers.location
+    ) {
       response.resume();
       if (options.redirectsLeft <= 0) {
         fail(new Error("Download failed because GitHub returned too many redirects."));
@@ -354,7 +436,12 @@ function downloadUrlOnce(url, options, resolvePromise, reject) {
       }
       settled = true;
       clearTimers();
-      downloadUrlOnce(redirectUrl, { ...options, redirectsLeft: options.redirectsLeft - 1 }, resolvePromise, reject);
+      downloadUrlOnce(
+        redirectUrl,
+        { ...options, redirectsLeft: options.redirectsLeft - 1 },
+        resolvePromise,
+        reject,
+      );
       return;
     }
     if (!response.statusCode || response.statusCode < 200 || response.statusCode >= 300) {
@@ -379,11 +466,18 @@ function downloadUrlOnce(url, options, resolvePromise, reject) {
       chunks.push(chunk);
     });
     response.on("end", () => succeed(Buffer.concat(chunks, totalBytes)));
-    response.on("aborted", () => fail(new Error("Download ended before the complete ketch archive was received.")));
+    response.on("aborted", () =>
+      fail(new Error("Download ended before the complete ketch archive was received.")),
+    );
     response.on("error", fail);
   });
-  overallTimeout = setTimeout(() => fail(new Error("Download timed out before the ketch archive was received.")), remainingMs);
-  request.setTimeout(options.idleTimeoutMs, () => fail(new Error("Download stalled before the ketch archive was received.")));
+  overallTimeout = setTimeout(
+    () => fail(new Error("Download timed out before the ketch archive was received.")),
+    remainingMs,
+  );
+  request.setTimeout(options.idleTimeoutMs, () =>
+    fail(new Error("Download stalled before the ketch archive was received.")),
+  );
   request.on("error", fail);
 }
 
@@ -395,7 +489,11 @@ export function appendBoundedOutput(current, chunk, maxBytes) {
 
 export async function runCommandWithSpawn(command, args, options = {}) {
   return await new Promise((resolvePromise) => {
-    const child = spawn(command, args, { cwd: options.cwd, stdio: ["ignore", "pipe", "pipe"], shell: false });
+    const child = spawn(command, args, {
+      cwd: options.cwd,
+      stdio: ["ignore", "pipe", "pipe"],
+      shell: false,
+    });
     const maxOutputBytes = options.maxOutputBytes ?? MAX_INSTALL_PROCESS_OUTPUT_BYTES;
     let stdout = "";
     let stderr = "";
@@ -415,11 +513,18 @@ export async function runCommandWithSpawn(command, args, options = {}) {
       timeout = setTimeout(() => {
         timedOut = true;
         child.kill("SIGTERM");
-        killTimeout = setTimeout(() => child.kill("SIGKILL"), options.killGraceMs ?? PROCESS_KILL_GRACE_MS);
+        killTimeout = setTimeout(
+          () => child.kill("SIGKILL"),
+          options.killGraceMs ?? PROCESS_KILL_GRACE_MS,
+        );
       }, options.timeoutMs);
     }
-    child.stdout.on("data", (chunk) => { stdout = appendBoundedOutput(stdout, chunk, maxOutputBytes); });
-    child.stderr.on("data", (chunk) => { stderr = appendBoundedOutput(stderr, chunk, maxOutputBytes); });
+    child.stdout.on("data", (chunk) => {
+      stdout = appendBoundedOutput(stdout, chunk, maxOutputBytes);
+    });
+    child.stderr.on("data", (chunk) => {
+      stderr = appendBoundedOutput(stderr, chunk, maxOutputBytes);
+    });
     child.on("error", (error) => finish({ exitCode: 1, error }));
     child.on("close", (exitCode, signal) => finish({ exitCode, signal }));
   });

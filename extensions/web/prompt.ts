@@ -24,10 +24,15 @@ function boundedMarkdown(markdown: string): string {
   return `${markdown.slice(0, MAX_FETCH_MARKDOWN_CHARS - marker.length)}${marker}`;
 }
 
-export function buildWebFetchUserMessage(input: WebFetchPromptInput, now: () => number = Date.now): UserMessage {
+export function buildWebFetchUserMessage(
+  input: WebFetchPromptInput,
+  now: () => number = Date.now,
+): UserMessage {
   const metadata = {
     requestedUrl: input.requestedUrl,
-    ...(input.fetchedUrl && input.fetchedUrl !== input.requestedUrl ? { fetchedUrl: input.fetchedUrl } : {}),
+    ...(input.fetchedUrl && input.fetchedUrl !== input.requestedUrl
+      ? { fetchedUrl: input.fetchedUrl }
+      : {}),
     title: input.title || "(untitled)",
   };
 

@@ -9,16 +9,20 @@ export type WebExtensionOptions = {
 } & Partial<Pick<WebFetchToolOptions, "createSessionId" | "now">>;
 
 export function registerWebTools(pi: ExtensionAPI, options: WebExtensionOptions = {}) {
-  const runner = options.runner ?? createKetchRunner({
-    exec: (command, args, execOptions) => pi.exec(command, args, execOptions),
-  });
+  const runner =
+    options.runner ??
+    createKetchRunner({
+      exec: (command, args, execOptions) => pi.exec(command, args, execOptions),
+    });
 
   pi.registerTool(createWebSearchTool(runner));
-  pi.registerTool(createWebFetchTool({
-    runner,
-    ...(options.createSessionId ? { createSessionId: options.createSessionId } : {}),
-    ...(options.now ? { now: options.now } : {}),
-  }));
+  pi.registerTool(
+    createWebFetchTool({
+      runner,
+      ...(options.createSessionId ? { createSessionId: options.createSessionId } : {}),
+      ...(options.now ? { now: options.now } : {}),
+    }),
+  );
 }
 
 export default function web(pi: ExtensionAPI) {

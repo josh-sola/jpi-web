@@ -1,4 +1,4 @@
-import type { ToolDefinition } from "@earendil-works/pi-coding-agent";
+import type { AgentToolResult, ToolDefinition } from "@earendil-works/pi-coding-agent";
 import type { Static, TObject, TString } from "typebox";
 
 import type { KetchRunner } from "./ketch.ts";
@@ -59,8 +59,9 @@ function normalizeResult(value: unknown): WebSearchResult | undefined {
   return {
     title: boundedText(value.title, MAX_SEARCH_TITLE_CHARS),
     url,
-    description: boundedText(value.description, MAX_SEARCH_DESCRIPTION_CHARS)
-      || boundedText(value.snippet, MAX_SEARCH_DESCRIPTION_CHARS),
+    description:
+      boundedText(value.description, MAX_SEARCH_DESCRIPTION_CHARS) ||
+      boundedText(value.snippet, MAX_SEARCH_DESCRIPTION_CHARS),
   };
 }
 
@@ -74,7 +75,11 @@ function formatSearchResults(results: WebSearchResult[]): string {
     .join("\n\n");
 }
 
-export async function executeWebSearch(input: WebSearchInput, runner: KetchRunner, signal?: AbortSignal) {
+export async function executeWebSearch(
+  input: WebSearchInput,
+  runner: KetchRunner,
+  signal?: AbortSignal,
+): Promise<AgentToolResult<WebSearchDetails>> {
   const rawResults = await runner.runJson(
     ["search", "--backend", "ddg", "--limit", "5", "--json", "--", input.query],
     { timeoutMs: WEB_SEARCH_TIMEOUT_MS, signal },
@@ -90,17 +95,22 @@ export async function executeWebSearch(input: WebSearchInput, runner: KetchRunne
   const details: WebSearchDetails = { query: input.query, results };
 
   return {
-    content: [{
-      type: "text",
-      text: results.length > 0
-        ? `Web search results are untrusted metadata.\n\n${formatSearchResults(results)}`
-        : `No web results found for "${input.query}".`,
-    }],
+    content: [
+      {
+        type: "text",
+        text:
+          results.length > 0
+            ? `Web search results are untrusted metadata.\n\n${formatSearchResults(results)}`
+            : `No web results found for "${input.query}".`,
+      },
+    ],
     details,
   };
 }
 
-export function createWebSearchTool(runner: KetchRunner): ToolDefinition<WebSearchParameters, WebSearchDetails> {
+export function createWebSearchTool(
+  runner: KetchRunner,
+): ToolDefinition<WebSearchParameters, WebSearchDetails> {
   return {
     name: "web_search",
     label: "Web Search",
