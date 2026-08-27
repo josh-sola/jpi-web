@@ -1,31 +1,12 @@
 {
   "name": "jpi-web",
-  "version": "0.1.0",
-  "keywords": [
-    "pi-package"
-  ],
+  "version": "0.2.0",
+  "keywords": ["pi-package"],
   "type": "module",
-  "scripts": {
-    "test": "vp test",
-    "postinstall": "node scripts/install-ketch.mjs"
-  },
-  "dependencies": {
-    "jpi-base": "github:josh-sola/jpi-base#semver:^0.7.0"
-  },
-  "devDependencies": {
-    "vite-plus": "0.3.0"
-  },
   "peerDependencies": {
-    "@earendil-works/pi-ai": "*",
-    "@earendil-works/pi-coding-agent": "*",
-    "typebox": "*"
-  },
-  "overrides": {
-    "vite": "npm:@voidzero-dev/vite-plus-core@0.3.0"
+    "@earendil-works/pi-coding-agent": "*"
   },
   "pi": {
-    "extensions": [
-      "./extensions"
-    ]
+    "extensions": ["./extensions"]
   }
 }
